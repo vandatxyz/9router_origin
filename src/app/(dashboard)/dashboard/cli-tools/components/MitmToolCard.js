@@ -5,6 +5,10 @@ import { Card, Button, Badge, Input, ModelSelectModal } from "@/shared/component
 import { TOOL_HOSTS } from "@/shared/constants/mitmToolHosts";
 import Image from "next/image";
 
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
 /**
  * Per-tool MITM card — shows DNS status + model mappings.
  * - Auto-saves model mapping on blur or modal select
@@ -36,9 +40,18 @@ export default function MitmToolCard({
   const [modelMappings, setModelMappings] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [currentEditingAlias, setCurrentEditingAlias] = useState(null);
+  const [dashboardHost, setDashboardHost] = useState("127.0.0.1");
 
   const mitmHosts = TOOL_HOSTS[tool.id] ?? [];
   const canRunWithoutPassword = isWin || hasCachedPassword || needsSudoPassword === false;
+  const remoteDashboard = !isLoopbackHost(dashboardHost);
+  const manualHostsTarget = remoteDashboard ? dashboardHost : "127.0.0.1";
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setDashboardHost(window.location.hostname || "127.0.0.1");
+    }
+  }, []);
 
   useEffect(() => {
     if (isExpanded) loadSavedMappings();
@@ -97,6 +110,10 @@ export default function MitmToolCard({
   };
 
   const doDnsAction = async (action, password) => {
+    if (remoteDashboard) {
+      setWarning(`Remote dashboard detected. Edit your client hosts file to point ${tool.name} domains to ${manualHostsTarget}.`);
+      return;
+    }
     setLoading(true);
     setWarning(null);
     try {
@@ -115,7 +132,9 @@ export default function MitmToolCard({
       setShowPasswordModal(false);
       setSudoPassword("");
       onDnsChange?.(data);
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      setWarning(error.message || "Failed to toggle DNS");
+    } finally {
       setLoading(false);
       setPendingDnsAction(null);
     }
@@ -166,23 +185,32 @@ export default function MitmToolCard({
 
         {isExpanded && (
           <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
-            {/* Hosts */}
             {mitmHosts.length > 0 && (
-              <div className="mt-2 rounded-md border border-border bg-surface/50 px-2 py-1.5">
+              <div className={`mt-2 rounded-md border px-2 py-1.5 ${remoteDashboard ? "border-yellow-500/30 bg-yellow-500/10" : "border-border bg-surface/50"}`}>
                 <p className="text-[10px] font-medium tracking-wide text-text-main/80 mb-1">
-                  Edit hosts file manually to add the following entries:
+                  {remoteDashboard
+                    ? `Remote VPS/Docker detected. Edit the client hosts file manually to add the following entries:`
+                    : "Edit hosts file manually to add the following entries:"}
                 </p>
                 <ul className="list-none space-y-0.5 font-mono text-[10px] text-text-muted break-all">
                   {mitmHosts.map((h) => (
-                    <li key={h}>127.0.0.1 {h}</li>
+                    <li key={h}>{manualHostsTarget} {h}</li>
                   ))}
                 </ul>
               </div>
             )}
             {/* Info */}
             <div className="flex flex-col gap-0.5 text-[11px] text-text-muted px-1">
-              <p>Toggle DNS to redirect {tool.name} traffic through 9Router via MITM.</p>
-              {!dnsActive && (
+              <p>
+                {remoteDashboard
+                  ? `Remote mode: ${tool.name} traffic must be redirected from the client machine to ${manualHostsTarget}.`
+                  : `Toggle DNS to redirect ${tool.name} traffic through 9Router via MITM.`}
+              </p>
+              {remoteDashboard ? (
+                <p className="text-amber-600 text-[10px] mt-1">
+                  ⚠️ Server-side DNS toggle only edits /etc/hosts on the VPS/container, not on your client machine.
+                </p>
+              ) : !dnsActive && (
                 <p className="text-amber-600 text-[10px] mt-1">
                   ⚠️ Enable DNS to edit model mappings
                 </p>
@@ -240,7 +268,8 @@ export default function MitmToolCard({
               {dnsActive ? (
                 <button
                   onClick={handleDnsToggle}
-                  disabled={!serverRunning || loading}
+                  disabled={!serverRunning || loading || remoteDashboard}
+                  title={remoteDashboard ? "Use manual hosts editing on the client machine when accessing a remote VPS/Docker" : undefined}
                   className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">stop_circle</span>
@@ -249,7 +278,8 @@ export default function MitmToolCard({
               ) : (
                 <button
                   onClick={handleDnsToggle}
-                  disabled={!serverRunning || loading}
+                  disabled={!serverRunning || loading || remoteDashboard}
+                  title={remoteDashboard ? "Use manual hosts editing on the client machine when accessing a remote VPS/Docker" : undefined}
                   className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">play_circle</span>
