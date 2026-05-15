@@ -46,6 +46,7 @@ export default function MitmToolCard({
   const canRunWithoutPassword = isWin || hasCachedPassword || needsSudoPassword === false;
   const remoteDashboard = !isLoopbackHost(dashboardHost);
   const manualHostsTarget = remoteDashboard ? dashboardHost : "127.0.0.1";
+  const mappingsEnabled = remoteDashboard ? serverRunning : dnsActive;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -110,10 +111,6 @@ export default function MitmToolCard({
   };
 
   const doDnsAction = async (action, password) => {
-    if (remoteDashboard) {
-      setWarning(`Remote dashboard detected. Edit your client hosts file to point ${tool.name} domains to ${manualHostsTarget}.`);
-      return;
-    }
     setLoading(true);
     setWarning(null);
     try {
@@ -208,7 +205,7 @@ export default function MitmToolCard({
               </p>
               {remoteDashboard ? (
                 <p className="text-amber-600 text-[10px] mt-1">
-                  ⚠️ Server-side DNS toggle only edits /etc/hosts on the VPS/container, not on your client machine.
+                  ⚠️ Remote VPS/Docker: sửa hosts trên máy client để trỏ về {manualHostsTarget}. Sau đó có thể map model ngay khi server đang chạy.
                 </p>
               ) : !dnsActive && (
                 <p className="text-amber-600 text-[10px] mt-1">
@@ -231,8 +228,8 @@ export default function MitmToolCard({
                         onChange={(e) => handleModelMappingChange(model.alias, e.target.value)}
                         onBlur={(e) => handleMappingBlur(model.alias, e.target.value)}
                         placeholder="provider/model-id"
-                        disabled={!dnsActive}
-                        className={`w-full min-w-0 pl-2 pr-7 py-2 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 sm:py-1.5 ${!dnsActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                        disabled={!mappingsEnabled}
+                        className={`w-full min-w-0 pl-2 pr-7 py-2 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 sm:py-1.5 ${!mappingsEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
                       />
                       {modelMappings[model.alias] && (
                         <button
@@ -249,8 +246,8 @@ export default function MitmToolCard({
                     </div>
                     <button
                       onClick={() => openModelSelector(model.alias)}
-                      disabled={!hasActiveProviders || !dnsActive}
-                      className={`rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 ${hasActiveProviders && dnsActive ? "bg-surface border-border hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}
+                      disabled={!hasActiveProviders || !mappingsEnabled}
+                      className={`rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 ${hasActiveProviders && mappingsEnabled ? "bg-surface border-border hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}
                     >
                       Select
                     </button>
@@ -268,8 +265,8 @@ export default function MitmToolCard({
               {dnsActive ? (
                 <button
                   onClick={handleDnsToggle}
-                  disabled={!serverRunning || loading || remoteDashboard}
-                  title={remoteDashboard ? "Use manual hosts editing on the client machine when accessing a remote VPS/Docker" : undefined}
+                  disabled={!serverRunning || loading}
+                  title={remoteDashboard ? "Remote mode still requires editing the client hosts file manually" : undefined}
                   className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">stop_circle</span>
@@ -278,8 +275,8 @@ export default function MitmToolCard({
               ) : (
                 <button
                   onClick={handleDnsToggle}
-                  disabled={!serverRunning || loading || remoteDashboard}
-                  title={remoteDashboard ? "Use manual hosts editing on the client machine when accessing a remote VPS/Docker" : undefined}
+                  disabled={!serverRunning || loading}
+                  title={remoteDashboard ? "Remote mode still requires editing the client hosts file manually" : undefined}
                   className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">play_circle</span>
