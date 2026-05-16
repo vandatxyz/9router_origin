@@ -194,7 +194,11 @@ export async function PATCH(request) {
     if (!isWin && sudoPassword) setCachedPassword(sudoPassword);
 
     const status = await getMitmStatus();
-    return NextResponse.json({ success: true, dnsStatus: status.dnsStatus });
+    const dnsStatus = {
+      ...(status.dnsStatus || {}),
+      [tool]: action === "enable",
+    };
+    return NextResponse.json({ success: true, dnsStatus });
   } catch (error) {
     console.log("Error toggling DNS:", error.message);
     return NextResponse.json({ error: error.message || "Failed to toggle DNS" }, { status: 500 });
