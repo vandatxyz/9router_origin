@@ -388,7 +388,11 @@ async function getMitmStatus() {
     } catch { /* ignore */ }
   }
 
-  const dnsStatus = checkAllDNSStatus();
+  const detectedDnsStatus = checkAllDNSStatus();
+  const savedDnsStatus = await loadDnsToolState();
+  const dnsStatus = Object.fromEntries(
+    Object.keys(TOOL_HOSTS).map((tool) => [tool, detectedDnsStatus[tool] || savedDnsStatus[tool] === true])
+  );
   const rootCACertPath = path.join(MITM_DIR, "rootCA.crt");
   const certExists = fs.existsSync(rootCACertPath);
   const { checkCertInstalled } = require("./cert/install");
