@@ -212,6 +212,23 @@ const server = https.createServer(sslOptions, async (req, res) => {
 });
 
 // Kill only processes LISTENING on LOCAL_PORT (not outbound connections)
+function parsePidList(raw) {
+  if (!raw) return [];
+  return Array.from(
+    new Set(
+      String(raw)
+        .split(/\r?\n/)
+        .flatMap((line) => {
+          const t = line.trim();
+          if (!t) return [];
+          if (/^\d+$/.test(t)) return [Number(t)];
+          return (t.match(/\b\d+\b/g) || []).map((n) => Number(n));
+        })
+        .filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid)
+    )
+  );
+}
+
 function killPort(port) {
   try {
     let pidList = [];
@@ -220,17 +237,30 @@ function killPort(port) {
         `"Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`;
       const out = execSync(psCmd, { encoding: "utf-8", windowsHide: true }).trim();
       if (!out) return;
-      pidList = out.split(/\r?\n/).map(s => s.trim()).filter(p => p && Number(p) !== process.pid && Number(p) > 4);
+      pidList = parsePidList(out).filter((pid) => pid > 4);
     } else {
-      const out = execSync(`lsof -nP -iTCP:${port} -sTCP:LISTEN -t`, { encoding: "utf-8", windowsHide: true }).trim();
+      const cmds = [
+        `lsof -nP -iTCP:${port} -sTCP:LISTEN -t 2>/dev/null`,
+        `lsof -nP -iTCP:${port} -sTCP:LISTEN 2>/dev/null`,
+        `ss -ltnp '( sport = :${port} )' 2>/dev/null`,
+      ];
+      let out = "";
+      for (const cmd of cmds) {
+        try {
+          out = execSync(cmd, { encoding: "utf-8", windowsHide: true }).trim();
+          if (out) break;
+        } catch (e) {
+          if (e.status !== 1) throw e;
+        }
+      }
       if (!out) return;
-      pidList = out.split("\n").filter(p => p && Number(p) !== process.pid);
+      pidList = parsePidList(out);
     }
     if (pidList.length === 0) return;
-    pidList.forEach(pid => {
+    pidList.forEach((pid) => {
       try {
         if (IS_WIN) execSync(`taskkill /F /PID ${pid}`, { windowsHide: true });
-        else process.kill(Number(pid), "SIGKILL");
+        else process.kill(pid, "SIGKILL");
       } catch (e) {
         err(`Failed to kill PID ${pid}: ${e.message}`);
       }
