@@ -760,7 +760,11 @@ async function enableToolDNS(tool, sudoPassword) {
   if (!status.running) throw new Error("MITM server is not running. Start the server first.");
 
   const password = sudoPassword || getCachedPassword() || await loadEncryptedPassword();
-  await addDNSEntry(tool, password);
+  try {
+    await addDNSEntry(tool, password);
+  } catch (error) {
+    err(`DNS ${tool}: hosts update skipped — ${error.message}`);
+  }
   await saveDnsToolState(tool, true);
   return { success: true };
 }
@@ -770,7 +774,11 @@ async function enableToolDNS(tool, sudoPassword) {
  */
 async function disableToolDNS(tool, sudoPassword) {
   const password = sudoPassword || getCachedPassword() || await loadEncryptedPassword();
-  await removeDNSEntry(tool, password);
+  try {
+    await removeDNSEntry(tool, password);
+  } catch (error) {
+    err(`DNS ${tool}: hosts cleanup skipped — ${error.message}`);
+  }
   await saveDnsToolState(tool, false);
   return { success: true };
 }

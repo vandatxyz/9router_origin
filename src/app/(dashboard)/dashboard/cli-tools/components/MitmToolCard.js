@@ -46,7 +46,7 @@ export default function MitmToolCard({
   const canRunWithoutPassword = isWin || hasCachedPassword || needsSudoPassword === false;
   const remoteDashboard = !isLoopbackHost(dashboardHost);
   const manualHostsTarget = remoteDashboard ? dashboardHost : "127.0.0.1";
-  const mappingsEnabled = remoteDashboard ? serverRunning : dnsActive;
+  const mappingsEnabled = true;
 
   useEffect(() => {
     if (typeof window !== "undefined") {

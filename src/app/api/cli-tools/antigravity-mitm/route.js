@@ -168,21 +168,21 @@ export async function PATCH(request) {
     if (!tool || !action) {
       return NextResponse.json({ error: "tool and action required" }, { status: 400 });
     }
-    if (requiresSudoPassword(pwd)) {
-      return NextResponse.json({ error: "Missing sudoPassword" }, { status: 400 });
-    }
-    if (!checkPrivilege(pwd)) {
-      return NextResponse.json(
-        { error: isWin ? "Administrator required — restart 9Router as Administrator" : "Root or sudo password required to modify DNS" },
-        { status: 403 }
-      );
-    }
 
     if (action === "enable") {
       await enableToolDNS(tool, pwd);
     } else if (action === "disable") {
       await disableToolDNS(tool, pwd);
     } else if (action === "trust-cert") {
+      if (requiresSudoPassword(pwd)) {
+        return NextResponse.json({ error: "Missing sudoPassword" }, { status: 400 });
+      }
+      if (!checkPrivilege(pwd)) {
+        return NextResponse.json(
+          { error: isWin ? "Administrator required — restart 9Router as Administrator" : "Root or sudo password required to trust certificate" },
+          { status: 403 }
+        );
+      }
       await trustCert(pwd);
       if (!isWin && sudoPassword) setCachedPassword(sudoPassword);
       const status = await getMitmStatus();
