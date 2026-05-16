@@ -1073,6 +1073,8 @@ docker run -d \
 docker compose -f docker-compose.mitm.yml up -d
 ```
 
+The provided compose file is prefilled for a VPS deployment using `vandatxyz/9router:latest` and the user's current public/base-url settings.
+
 This runs:
 - `9router` on `20128`
 - `9router-mitm` on `443`
@@ -1108,7 +1110,7 @@ docker pull decolua/9router:latest   # update to latest
 **Remote MITM notes:**
 - `MITM_STANDALONE_MODE=1` disables embedded MITM auto-start in the app container.
 - `RUN_MODE=mitm` starts the dedicated MITM container/process.
-- `MITM_ROUTER_BASE=http://9router:20128` makes the MITM container forward to the app container over Docker network.
+- `MITM_ROUTER_BASE=http://host.docker.internal:20128` makes the MITM container forward to the app container via host gateway.
 - In Docker/minimal VPS images, you still need manual `hosts` mapping and cert trust on the traffic-originating machine.
 
 ### Environment Variables

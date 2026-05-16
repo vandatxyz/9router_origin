@@ -72,6 +72,8 @@ For remote MITM usage, prefer **two containers** so the MITM lifecycle is indepe
 docker compose -f docker-compose.mitm.yml up -d
 ```
 
+The provided compose file is prefilled for a VPS deployment using `vandatxyz/9router:latest` and the current public/base-url settings.
+
 This starts:
 - `9router` on port `20128`
 - `9router-mitm` on port `443`
@@ -81,7 +83,7 @@ Both containers share the same `/app/data` volume, so MITM sees the same DB, ali
 ### Required environment behavior
 
 - `9router` runs with `MITM_STANDALONE_MODE=1` so it does **not** auto-start embedded MITM.
-- `9router-mitm` runs with `RUN_MODE=mitm` and `MITM_ROUTER_BASE=http://9router:20128`.
+- `9router-mitm` runs with `RUN_MODE=mitm` and `MITM_ROUTER_BASE=http://host.docker.internal:20128`.
 
 ### Required manual network setup
 
@@ -110,7 +112,6 @@ docker pull decolua/9router:latest
 docker rm -f 9router
 # re-run the quick start command
 ```
-
 
 ---
 
