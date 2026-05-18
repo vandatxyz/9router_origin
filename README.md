@@ -1067,6 +1067,20 @@ docker run -d \
 
 → Open http://localhost:20128
 
+**Stable MITM on VPS/Docker (recommended):**
+
+```bash
+docker compose -f docker-compose.mitm.yml up -d
+```
+
+The provided compose file is prefilled for a VPS deployment using `vandatxyz/9router:latest` and the user's current public/base-url settings.
+
+This runs:
+- `9router` on `20128`
+- `9router-mitm` on `443`
+
+`9router` and `9router-mitm` share the same data volume, so aliases, DB state, and generated certs stay in sync.
+
 **Build from source (dev):**
 
 ```bash
@@ -1080,6 +1094,7 @@ docker run -d --name 9router -p 20128:20128 \
 **Container defaults:**
 - `PORT=20128`
 - `HOSTNAME=0.0.0.0`
+- `RUN_MODE=app`
 
 **Useful commands:**
 
@@ -1091,6 +1106,12 @@ docker pull decolua/9router:latest   # update to latest
 ```
 
 **Data persistence:** `$HOME/.9router/db/data.sqlite` on host ↔ `/app/data/db/data.sqlite` in container.
+
+**Remote MITM notes:**
+- `MITM_STANDALONE_MODE=1` disables embedded MITM auto-start in the app container.
+- `RUN_MODE=mitm` starts the dedicated MITM container/process.
+- `MITM_ROUTER_BASE=http://host.docker.internal:20128` makes the MITM container forward to the app container via host gateway.
+- In Docker/minimal VPS images, you still need manual `hosts` mapping and cert trust on the traffic-originating machine.
 
 ### Environment Variables
 
@@ -1112,6 +1133,9 @@ docker pull decolua/9router:latest   # update to latest
 | `AUTH_COOKIE_SECURE` | `false` | Force `Secure` auth cookie (set `true` behind HTTPS reverse proxy) |
 | `REQUIRE_API_KEY` | `false` | Enforce Bearer API key on `/v1/*` routes (recommended for internet-exposed deploys) |
 | `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | empty | Optional outbound proxy for upstream provider calls |
+| `RUN_MODE` | `app` | `app` runs dashboard/API, `mitm` runs standalone MITM service |
+| `MITM_STANDALONE_MODE` | `0` | When `1`, app container skips embedded MITM auto-start |
+| `MITM_ROUTER_BASE` | `http://127.0.0.1:20128` | Base URL used by standalone MITM to forward into 9Router |
 
 Notes:
 - Lowercase proxy variables are also supported: `http_proxy`, `https_proxy`, `all_proxy`, `no_proxy`.

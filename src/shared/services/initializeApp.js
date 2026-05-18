@@ -19,6 +19,8 @@ import {
 import { getMitmStatus, startMitm, loadEncryptedPassword, initDbHooks, restoreToolDNS, removeAllDNSEntriesSync } from "@/mitm/manager";
 import { syncToJson as syncMitmAliasCache } from "@/lib/mitmAliasCache";
 
+const MITM_STANDALONE_MODE = process.env.MITM_STANDALONE_MODE === "1";
+
 // Inject correct paths and DB hooks into manager.js (CJS) from ESM context
 (function bootstrapMitm() {
   if (!process.env.MITM_SERVER_PATH) {
@@ -85,7 +87,11 @@ export async function initializeApp() {
 
     startWatchdog();
     startNetworkMonitor();
-    autoStartMitm();
+    if (!MITM_STANDALONE_MODE) {
+      autoStartMitm();
+    } else {
+      console.log("[InitApp] MITM standalone mode enabled — skipping embedded MITM auto-start");
+    }
   } catch (error) {
     console.error("[InitApp] Error:", error);
   }
@@ -124,6 +130,7 @@ async function autoStartMitm() {
     g.mitmStartInProgress = false;
   }
 }
+
 
 // ─── Safe restart (4 guards: spawn / cooldown / alive / internet) ────────────
 

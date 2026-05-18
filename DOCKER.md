@@ -64,6 +64,47 @@ docker run -d \
   decolua/9router:latest
 ```
 
+## Stable MITM deployment on VPS/Docker
+
+For remote MITM usage, prefer **two containers** so the MITM lifecycle is independent from the Next.js app.
+
+```bash
+docker compose -f docker-compose.mitm.yml up -d
+```
+
+The provided compose file is prefilled for a VPS deployment using `vandatxyz/9router:latest` and the current public/base-url settings.
+
+This starts:
+- `9router` on port `20128`
+- `9router-mitm` on port `443`
+
+Both containers share the same `/app/data` volume, so MITM sees the same DB, aliases, and generated certificates.
+
+### Required environment behavior
+
+- `9router` runs with `MITM_STANDALONE_MODE=1` so it does **not** auto-start embedded MITM.
+- `9router-mitm` runs with `RUN_MODE=mitm` and `MITM_ROUTER_BASE=http://host.docker.internal:20128`.
+
+### Required manual network setup
+
+Inside Docker/minimal Linux images, 9Router may not be able to edit `/etc/hosts` automatically.
+You still need to:
+
+- trust `/app/data/mitm/rootCA.crt` on every machine that will use the MITM
+- map MITM target hosts manually on the client or VPS that originates traffic
+
+Example:
+
+```text
+<VPS_IP> daily-cloudcode-pa.googleapis.com
+```
+
+If the traffic originates from the VPS host itself, add:
+
+```text
+127.0.0.1 daily-cloudcode-pa.googleapis.com
+```
+
 ## Update to latest
 
 ```bash

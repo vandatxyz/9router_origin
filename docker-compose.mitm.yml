@@ -1,0 +1,38 @@
+services:
+  9router:
+    image: vandatxyz/9router:latest
+    container_name: 9router
+    restart: unless-stopped
+    ports:
+      - "20128:20128"
+    environment:
+      DATA_DIR: /app/data
+      HOSTNAME: 0.0.0.0
+      PORT: 20128
+      REQUIRE_API_KEY: "false"
+      BASE_URL: http://127.0.0.1:20128
+      NEXT_PUBLIC_BASE_URL: http://103.249.116.175:20128
+      API_KEY_SECRET: endpoint-proxy-api-key-secret
+      MITM_STANDALONE_MODE: "1"
+    volumes:
+      - 9router-data:/app/data
+
+  9router-mitm:
+    image: vandatxyz/9router:latest
+    container_name: 9router-mitm
+    restart: unless-stopped
+    depends_on:
+      - 9router
+    ports:
+      - "443:443"
+    environment:
+      DATA_DIR: /app/data
+      RUN_MODE: mitm
+      MITM_ROUTER_BASE: http://host.docker.internal:20128
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - 9router-data:/app/data
+
+volumes:
+  9router-data:
