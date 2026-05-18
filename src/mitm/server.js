@@ -222,7 +222,9 @@ function parsePidList(raw) {
           const t = line.trim();
           if (!t) return [];
           if (/^\d+$/.test(t)) return [Number(t)];
-          return (t.match(/\b\d+\b/g) || []).map((n) => Number(n));
+          const pidEq = Array.from(t.matchAll(/pid=(\d+)/g), (m) => Number(m[1]));
+          if (pidEq.length) return pidEq;
+          return [];
         })
         .filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid)
     )
