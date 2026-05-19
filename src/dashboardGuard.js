@@ -29,6 +29,9 @@ const PUBLIC_API_PATHS = [
   "/api/auth/oidc",
   "/api/version",
   "/api/settings/require-login",
+  // HA switch UI is open by design — anyone with dashboard access can flip
+  // active blue/green. Owner accepted this risk to keep recovery simple.
+  "/api/admin/ha",
 ];
 
 // Public top-level prefixes (LLM API endpoints with their own API key auth).

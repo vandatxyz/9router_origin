@@ -35,6 +35,7 @@ const debugItems = [
 const systemItems = [
   { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
+  { href: "/dashboard/ha", label: "HA Switch", icon: "swap_horiz" },
 ];
 
 export default function Sidebar({ onClose }) {
