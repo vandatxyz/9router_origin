@@ -129,11 +129,13 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       if (current && current.lastUsedAt && currentCount < stickyLimit) {
         // Stay with current account
         connection = current;
-        // Update lastUsedAt and increment count (await to ensure persistence)
-        await updateProviderConnection(connection.id, {
+        // Fire-and-forget: round-robin counter doesn't need to be persisted
+        // before we hand control back to the caller. Awaiting it serialised every
+        // request behind a DB write transaction inside the global selectionMutex.
+        updateProviderConnection(connection.id, {
           lastUsedAt: new Date().toISOString(),
           consecutiveUseCount: (connection.consecutiveUseCount || 0) + 1
-        });
+        }).catch((err) => log.warn("AUTH", `RR sticky update failed for ${connection.id?.slice(0, 8)}: ${err?.message || err}`));
       } else {
         // Pick the least recently used (excluding current if possible)
         const sortedByOldest = [...availableConnections].sort((a, b) => {
@@ -145,11 +147,11 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
         connection = sortedByOldest[0];
 
-        // Update lastUsedAt and reset count to 1 (await to ensure persistence)
-        await updateProviderConnection(connection.id, {
+        // Fire-and-forget reset counter
+        updateProviderConnection(connection.id, {
           lastUsedAt: new Date().toISOString(),
           consecutiveUseCount: 1
-        });
+        }).catch((err) => log.warn("AUTH", `RR rotate update failed for ${connection.id?.slice(0, 8)}: ${err?.message || err}`));
       }
     } else {
       // Default: fill-first (already sorted by priority in getProviderConnections)

@@ -1,6 +1,8 @@
 // Public API barrel — all DB functions
 import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
+import { invalidateSettingsCache } from "./repos/settingsRepo.js";
+import { invalidateConnectionsCache } from "./repos/connectionsRepo.js";
 
 // Settings
 export {
@@ -161,6 +163,10 @@ export async function importDb(payload) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
   });
+
+  // Invalidate caches — all repos that cache must drop their snapshots after wholesale wipe.
+  invalidateSettingsCache();
+  invalidateConnectionsCache();
 
   return await exportDb();
 }
